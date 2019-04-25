@@ -19,8 +19,10 @@ unsigned long long prev_time = 0;
 unsigned short frames = 0;
 static uint64_t tot_frames = 0;
 uint64_t start_time = 0;
+uint64_t prev_utime = 0;
+uint64_t avg_frametime = 0; 
 
-uint64_t prev_mtime = 0;
+FILE *logfile;
 
 volatile sig_atomic_t done = 0;
 
@@ -30,6 +32,8 @@ __attribute__((destructor))
 void on_terminate() {
 	uint64_t end_time = time(NULL);
 	uint64_t tot_time = end_time - start_time;
+	// Close the logfile
+	//fclose(logfile);
 
 	fprintf(stdout, "Exiting...\n");
 	fprintf(stdout, "Statistics for pid %d, name %s:\n\n", pid, prog_name);
@@ -49,26 +53,27 @@ void fps_logger() {
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 
-	uint64_t cur_mtime = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
-	printf("Frametime: %llu\n", cur_mtime - prev_mtime);
-	
+	uint64_t cur_utime = (tv.tv_sec * 1000000) + tv.tv_usec;
+	//printf("Frametime: %llu\n", cur_utime - prev_utime);
+	avg_frametime += cur_utime - prev_utime;
 
 	if (log_dir != NULL) {
-		printf("Logging..\n");
-		FILE *logfile = fopen(log_location, "a");
-       	 	fprintf(logfile, "%d,\n", cur_mtime - prev_mtime);
-       	 	fclose(logfile);
+		//printf("Logging..\n");
+		//FILE *logfile = fopen(log_location, "a");
+       	 	fprintf(logfile, "%d,\n", cur_utime - prev_utime);
+       	 	//fclose(logfile);
      	}
 	//FILE *testf = fopen("/home/jussi/ohj/vulkan_fps_logger/testlog.csv", "a");
-	//fprintf(testf, "%d,\n", cur_mtime - prev_mtime);
+	//fprintf(testf, "%d,\n", cur_utime - prev_utime);
 	//fclose(testf);
 
 
-	prev_mtime = cur_mtime; 
+	prev_utime = cur_utime; 
 
         if (cur_time > prev_time) {
        	         prev_time = cur_time;
-                 fprintf(stdout, "FPS: %d\n", frames);
+                 fprintf(stdout, "FPS: %d \t Avg. frametime: %3.3f ms\n", frames, (float) (avg_frametime / frames) / 1000);
+		 avg_frametime = 0;
         	 // Print the fps to a file
 		 //printf("%s\n", lod_dir);
 		 
@@ -79,7 +84,7 @@ void fps_logger() {
 __attribute__ ((constructor))
 void init() {
 	//exit(1);
-	fopen("/home/jussi/ohj/vulkan_fps_logger/test", "a");
+	//fopen("/home/jussi/ohj/vulkan_fps_logger/test", "a");
 
 	// Get the startup time
 	start_time = time(NULL);
@@ -87,7 +92,7 @@ void init() {
 	
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
-	uint64_t prev_mtime = (tv.tv_sec * 1000) + (tv.tv_usec / 1000);
+	prev_utime = (tv.tv_sec * 1000000) + tv.tv_usec;
 
 	
 	// Get formatted date and time
@@ -134,7 +139,13 @@ void init() {
 		strcat(log_location, date);
 		strcat(log_location, "_");
 		strcat(log_location, time); 
-		strcat(log_location, ".csv");	
+		strcat(log_location, ".csv");
+
+		// Open the logfile
+		logfile = fopen(log_location, "a");
+		if (logfile == NULL) {
+			fprintf(stderr, "perflogger: Couldn't open the logfile\n");
+		}	
 		fprintf(stdout, "Logging to file: %s\n", log_location);
 	} else printf("Not logging to a file.\n");
 

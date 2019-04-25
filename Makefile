@@ -4,5 +4,5 @@ SOURCES=$(wildcard $(SOURCEDIR)*.c)
 all: perflogger
 
 perflogger:
-	gcc $(SOURCES) -fpic -shared -DHOOK_DLSYM -o perflogger.so
+	gcc $(SOURCES) -fpic -shared -DHOOK_DLSYM -o libperflogger.so
 
