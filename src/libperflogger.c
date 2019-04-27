@@ -7,6 +7,7 @@
 #include <string.h>
 #include <signal.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -26,22 +27,38 @@ FILE *logfile;
 
 volatile sig_atomic_t done = 0;
 
+bool ran_destructor = false;
+
+// Variables for launching gnuplot
+const char *frametime_unit = "milliseconds";
+
 // Function to handle exits - print the total statistics
 
 __attribute__((destructor))
 void on_terminate() {
-	uint64_t end_time = time(NULL);
-	uint64_t tot_time = end_time - start_time;
-	// Close the logfile
-	//fclose(logfile);
+	// In some cases the destructor may be called twice, so check if it's been ran before
+	if (!ran_destructor) {
+		ran_destructor = true;
+		uint64_t end_time = time(NULL);
+		uint64_t tot_time = end_time - start_time;
+		// Close the logfile
+		//fclose(logfile);
 
-	fprintf(stdout, "Exiting...\n");
-	fprintf(stdout, "Statistics for pid %d, name %s:\n\n", pid, prog_name);
-	fprintf(stdout, "Frames\t Time\t Avg. FPS\n");
-	fprintf(stdout, "%d\t %d\t %3.3f\n", tot_frames, tot_time, (float)tot_frames / tot_time);
-	printf("\n"); 
-	done = 1;
-	exit(EXIT_SUCCESS);
+		fprintf(stdout, "Exiting...\n");
+		fprintf(stdout, "Statistics for pid %d, name %s:\n\n", pid, prog_name);
+		fprintf(stdout, "Frames\t Time\t Avg. FPS\n");
+		fprintf(stdout, "%d\t %d\t %3.3f\n", tot_frames, tot_time, (float)tot_frames / tot_time);
+		printf("\n");
+
+		// Optional launch of gnuplot with the logfile
+		/*char plot_launch_cmd[512];
+		sprintf(plot_launch_cmd, "gnuplot -p -e 'set ylabel \"%s\";set xlabel \"frames\";set yrange [0:100]; plot \"%s\" with lines' ", frametime_unit, log_location);
+
+		printf("%s\n", plot_launch_cmd);*/
+		done = 1;
+
+		exit(EXIT_SUCCESS);
+	}
 }
 
 void fps_logger();
@@ -60,7 +77,7 @@ void fps_logger() {
 	if (log_dir != NULL) {
 		//printf("Logging..\n");
 		//FILE *logfile = fopen(log_location, "a");
-       	 	fprintf(logfile, "%d,\n", cur_utime - prev_utime);
+       	 	fprintf(logfile, "%3.3f\n", (float) (cur_utime - prev_utime) / 1000);
        	 	//fclose(logfile);
      	}
 	//FILE *testf = fopen("/home/jussi/ohj/vulkan_fps_logger/testlog.csv", "a");
@@ -98,11 +115,9 @@ void init() {
 	// Get formatted date and time
 	char date[64];
 	strftime(date, 64, "%F", &tm);
-	printf("%s\n", date);
 
 	char time[64];
 	strftime(time, 64, "%X", &tm);
-	printf("%s\n", time);
 
 	// Set the signal handler
 	struct sigaction action;
@@ -111,7 +126,7 @@ void init() {
 	sigaction(SIGTERM, &action, NULL);
 	sigaction(SIGINT, &action, NULL);
 
-	fprintf(stdout, "\n\nStartup...\n\n");
+	fprintf(stdout, "\n\nPerflogger starting...\n\n");
 	log_dir = getenv("LOG_DIR");
 
 	pid = getpid();
@@ -135,7 +150,7 @@ void init() {
 	// Don't log to file if log_dir is NULL
 	if (log_dir != NULL) {
 		strcpy(log_location, log_dir);
-		strcat(log_location, "/vklogger.");
+		strcat(log_location, "/perflogger.");
 		strcat(log_location, date);
 		strcat(log_location, "_");
 		strcat(log_location, time); 
@@ -147,7 +162,7 @@ void init() {
 			fprintf(stderr, "perflogger: Couldn't open the logfile\n");
 		}	
 		fprintf(stdout, "Logging to file: %s\n", log_location);
-	} else printf("Not logging to a file.\n");
+	} else fprintf(stdout, "Not logging to a file.\n");
 
 	fprintf(stdout, "PID: %d\n", pid);
 }
