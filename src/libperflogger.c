@@ -8,9 +8,11 @@
 #include <signal.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <spawn.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 
 pid_t pid;
 char *log_dir;
@@ -51,6 +53,24 @@ void on_terminate() {
 		printf("\n");
 
 		// Optional launch of gnuplot with the logfile
+		if (getenv("LAUNCH_PLOT") != NULL && atoi(getenv("LAUNCH_PLOT")) == 1) {
+			printf("Launch plot\n");
+			char* args[] = { "/bin/vlc"};	
+			pid_t launch_pid;
+			extern char **environ;
+			//posix_spawnp(&launch_pid, "vlc", NULL, NULL, args, environ);
+			launch_pid = fork();
+			// Launch the process on the child process
+			if (launch_pid == 0) {
+				/*printf("Im the child with pid %d\n", (int) getpid());
+				execv(args[0], args);
+				sleep(5);
+				exit(EXIT_SUCCESS);*/
+			}
+			wait(NULL);
+		}
+			
+
 		/*char plot_launch_cmd[512];
 		sprintf(plot_launch_cmd, "gnuplot -p -e 'set ylabel \"%s\";set xlabel \"frames\";set yrange [0:100]; plot \"%s\" with lines' ", frametime_unit, log_location);
 
@@ -130,13 +150,10 @@ void init() {
 	log_dir = getenv("LOG_DIR");
 
 	pid = getpid();
-	char pid_str[16];
-	sprintf(pid_str, "%d", pid);
 	
 	//Get the process name
 	char proc_path[256] = "/proc/";
-	strcat(proc_path, pid_str);
-	strcat(proc_path, "/comm");
+	sprintf(proc_path, "/proc/%d/comm", pid);
 
 	FILE *proc_file = fopen(proc_path, "r");
 	char prog_name_tmp[128];
@@ -149,12 +166,7 @@ void init() {
 	// Append the name and date to the file name
 	// Don't log to file if log_dir is NULL
 	if (log_dir != NULL) {
-		strcpy(log_location, log_dir);
-		strcat(log_location, "/perflogger.");
-		strcat(log_location, date);
-		strcat(log_location, "_");
-		strcat(log_location, time); 
-		strcat(log_location, ".csv");
+		sprintf(log_location, "%s/perflogger.%s_%s.csv", log_dir, date, time);
 
 		// Open the logfile
 		logfile = fopen(log_location, "a");
