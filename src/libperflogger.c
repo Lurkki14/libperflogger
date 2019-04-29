@@ -34,6 +34,11 @@ bool ran_destructor = false;
 // Variables for launching gnuplot
 const char *frametime_unit = "milliseconds";
 
+// Variables for environment variable names
+const char *env_terse_stdout = "PERFLOGGER_TERSE_STDOUT";
+const char *env_log_dir = "PERFLOGGER_LOG_DIR";
+const char *env_launch_plot = "PERFLOGGER_LAUNCH_PLOT";
+
 // Function to handle exits - print the total statistics
 
 __attribute__((destructor))
@@ -47,13 +52,16 @@ void on_terminate() {
 		//fclose(logfile);
 
 		fprintf(stdout, "Exiting...\n");
+		if (log_dir != NULL && log_location != NULL) {
+			fprintf(stdout, "Logfile saved to %s\n", log_location);
+		}
 		fprintf(stdout, "Statistics for pid %d, name %s:\n\n", pid, prog_name);
 		fprintf(stdout, "Frames\t Time\t Avg. FPS\n");
-		fprintf(stdout, "%d\t %d\t %3.3f\n", tot_frames, tot_time, (float)tot_frames / tot_time);
+		fprintf(stdout, "%d\t %d s\t %3.3f\n", tot_frames, tot_time, (float)tot_frames / tot_time);
 		printf("\n");
 
 		// Optional launch of gnuplot with the logfile
-		if (getenv("LAUNCH_PLOT") != NULL && atoi(getenv("LAUNCH_PLOT")) == 1) {
+		if (getenv(env_launch_plot) != NULL && atoi(getenv(env_launch_plot)) == 1) {
 			printf("Launch plot\n");
 			char* args[] = { "/bin/vlc"};	
 			pid_t launch_pid;
@@ -67,7 +75,8 @@ void on_terminate() {
 				sleep(5);
 				exit(EXIT_SUCCESS);*/
 			}
-			wait(NULL);
+			
+			//wait(NULL);
 		}
 			
 
@@ -94,7 +103,7 @@ void fps_logger() {
 	//printf("Frametime: %llu\n", cur_utime - prev_utime);
 	avg_frametime += cur_utime - prev_utime;
 
-	if (log_dir != NULL) {
+	if (log_dir != NULL && logfile != NULL) {
 		//printf("Logging..\n");
 		//FILE *logfile = fopen(log_location, "a");
        	 	fprintf(logfile, "%3.3f\n", (float) (cur_utime - prev_utime) / 1000);
@@ -107,7 +116,9 @@ void fps_logger() {
 
 	prev_utime = cur_utime; 
 
-        if (cur_time > prev_time) {
+	// Show the fps in stdout based on an env variable
+        if (cur_time > prev_time && ((getenv(env_terse_stdout) != NULL && atoi(getenv(env_terse_stdout)) != 1) || 
+			       getenv(env_terse_stdout) == NULL)) {
        	         prev_time = cur_time;
                  fprintf(stdout, "FPS: %d \t Avg. frametime: %3.3f ms\n", frames, (float) (avg_frametime / frames) / 1000);
 		 avg_frametime = 0;
@@ -147,7 +158,7 @@ void init() {
 	sigaction(SIGINT, &action, NULL);
 
 	fprintf(stdout, "\n\nPerflogger starting...\n\n");
-	log_dir = getenv("LOG_DIR");
+	log_dir = getenv(env_log_dir);
 
 	pid = getpid();
 	
@@ -171,10 +182,8 @@ void init() {
 		// Open the logfile
 		logfile = fopen(log_location, "a");
 		if (logfile == NULL) {
-			fprintf(stderr, "perflogger: Couldn't open the logfile\n");
+			fprintf(stderr, "perflogger: Couldn't open the specified logfile\n");
 		}	
 		fprintf(stdout, "Logging to file: %s\n", log_location);
 	} else fprintf(stdout, "Not logging to a file.\n");
-
-	fprintf(stdout, "PID: %d\n", pid);
 }
