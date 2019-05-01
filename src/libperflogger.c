@@ -39,6 +39,9 @@ const char *env_terse_stdout = "PERFLOGGER_TERSE_STDOUT";
 const char *env_log_dir = "PERFLOGGER_LOG_DIR";
 const char *env_launch_plot = "PERFLOGGER_LAUNCH_PLOT";
 
+// Variables for optional code in the hooked function to reduce calls to getenv()
+bool terse_stdout = false;
+
 // Function to handle exits - print the total statistics
 
 __attribute__((destructor))
@@ -117,8 +120,7 @@ void fps_logger() {
 	prev_utime = cur_utime; 
 
 	// Show the fps in stdout based on an env variable
-        if (cur_time > prev_time && ((getenv(env_terse_stdout) != NULL && atoi(getenv(env_terse_stdout)) != 1) || 
-			       getenv(env_terse_stdout) == NULL)) {
+        if (cur_time > prev_time && !terse_stdout) {
        	         prev_time = cur_time;
                  fprintf(stdout, "FPS: %d \t Avg. frametime: %3.3f ms\n", frames, (float) (avg_frametime / frames) / 1000);
 		 avg_frametime = 0;
@@ -142,7 +144,11 @@ void init() {
 	gettimeofday(&tv, NULL);
 	prev_utime = (tv.tv_sec * 1000000) + tv.tv_usec;
 
-	
+	// Get the environment variables that are used in hooked functions
+	if (getenv(env_terse_stdout) != NULL && atoi(getenv(env_terse_stdout)) == 1) {
+		terse_stdout = true;
+	}
+
 	// Get formatted date and time
 	char date[64];
 	strftime(date, 64, "%F", &tm);
