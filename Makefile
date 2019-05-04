@@ -6,8 +6,8 @@ BINDIR=/usr/local/bin
 all: perflogger
 
 perflogger:
-	gcc $(SOURCES) -fpic -shared -DHOOK_DLSYM -o libperflogger.so
-	gcc $(SOURCES) -fpic -shared -DHOOK_DLSYM -m32 -o libperflogger32.so
+	gcc $(SOURCES) -fpic -shared -fvisibility=hidden -DHOOK_DLSYM -o libperflogger.so
+	gcc $(SOURCES) -fpic -shared -fvisibility=hidden -DHOOK_DLSYM -m32 -o libperflogger32.so
 
 install: all
 	install -m 0644 -D -T libperflogger.conf /etc/ld.so.conf.d/libperflogger.conf

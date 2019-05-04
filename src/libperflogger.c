@@ -1,3 +1,22 @@
+/*
+This file is part of libperflogger.
+
+Copyright (c) 2019 Jussi Kuokkanen
+
+Libperflogger is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Libperflogger is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with libperflogger.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <dlfcn.h>
@@ -23,7 +42,7 @@ unsigned short frames = 0;
 static uint64_t tot_frames = 0;
 uint64_t start_time = 0;
 uint64_t prev_utime = 0;
-uint64_t avg_frametime = 0; 
+uint64_t avg_frametime = 0;
 
 FILE *logfile;
 
@@ -69,7 +88,7 @@ void on_terminate() {
 		// Optional launch of gnuplot with the logfile
 		if (getenv(env_launch_plot) != NULL && atoi(getenv(env_launch_plot)) == 1) {
 			printf("Launch plot\n");
-			char* args[] = { "/bin/vlc"};	
+			char* args[] = { "/bin/vlc"};
 			pid_t launch_pid;
 			extern char **environ;
 			//posix_spawnp(&launch_pid, "vlc", NULL, NULL, args, environ);
@@ -81,10 +100,10 @@ void on_terminate() {
 				sleep(5);
 				exit(EXIT_SUCCESS);*/
 			}
-			
+
 			//wait(NULL);
 		}
-			
+
 
 		/*char plot_launch_cmd[512];
 		sprintf(plot_launch_cmd, "gnuplot -p -e 'set ylabel \"%s\";set xlabel \"frames\";set yrange [0:100]; plot \"%s\" with lines' ", frametime_unit, log_location);
@@ -120,7 +139,7 @@ void fps_logger() {
 	//fclose(testf);
 
 
-	prev_utime = cur_utime; 
+	prev_utime = cur_utime;
 
 	// Show the fps in stdout based on an env variable
         if (cur_time > prev_time && use_stdout) {
@@ -129,7 +148,7 @@ void fps_logger() {
 		 avg_frametime = 0;
         	 // Print the fps to a file
 		 //printf("%s\n", lod_dir);
-		 
+
 		 frames = 0;
 	}
 }
@@ -142,7 +161,7 @@ void init() {
 	// Get the startup time
 	start_time = time(NULL);
 	struct tm tm = *localtime((const long int*) &start_time);
-	
+
 	struct timeval tv;
 	gettimeofday(&tv, NULL);
 	prev_utime = (tv.tv_sec * 1000000) + tv.tv_usec;
@@ -162,7 +181,7 @@ void init() {
 	// Set the signal handler
 	struct sigaction action;
 	memset(&action, 0, sizeof(struct sigaction));
-	action.sa_handler = on_terminate; 	
+	action.sa_handler = on_terminate;
 	sigaction(SIGTERM, &action, NULL);
 	sigaction(SIGINT, &action, NULL);
 
@@ -170,16 +189,16 @@ void init() {
 	log_dir = getenv(env_log_dir);
 
 	pid = getpid();
-	
+
 	//Get the process name
 	char proc_path[256] = "/proc/";
 	sprintf(proc_path, "/proc/%d/comm", pid);
 
 	FILE *proc_file = fopen(proc_path, "r");
 	char prog_name_tmp[128];
-	
-        fscanf(proc_file, "%s", prog_name_tmp); 
-	strcpy(prog_name, prog_name_tmp);	
+
+        fscanf(proc_file, "%s", prog_name_tmp);
+	strcpy(prog_name, prog_name_tmp);
 
 	//printf("%s\n", prog_name);
 
@@ -202,6 +221,3 @@ void init() {
 	       } else printf("Not logging to a file\n");
 	}
 }
-
-
-

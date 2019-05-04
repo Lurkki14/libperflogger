@@ -1,8 +1,27 @@
+/*
+This file is part of libperflogger.
+
+Copyright (c) 2019 Jussi Kuokkanen
+
+Libperflogger is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Libperflogger is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with libperflogger.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #define _GNU_SOURCE
 
 #include "libperflogger.h"
 #include "symbol_resolver.h"
- 
+
 #include <dlfcn.h>
 #include <string.h>
 #include <stddef.h>
@@ -20,11 +39,11 @@ void* glXGetProcAddress(const unsigned char*);
 void* glXGetProcAddressARB(const unsigned char*);
 
 void *get_real_glx_function(const char *name) {
-	void *(*real_glXGetProcAddress)(const unsigned char*) = 
+	void *(*real_glXGetProcAddress)(const unsigned char*) =
 		get_real_function(RTLD_NEXT, "glXGetProcAddress");
 	void *(*real_glXGetProcAddressARB)(const unsigned char*) =
 		get_real_function(RTLD_NEXT, "glXGetProcAddressARB");
-	
+
 	void (*real_func)() = real_glXGetProcAddress((const unsigned char*) name);
 	if (real_func != NULL) {
 		return real_func;

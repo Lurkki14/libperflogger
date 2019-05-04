@@ -1,3 +1,22 @@
+/*
+This file is part of libperflogger.
+
+Copyright (c) 2019 Jussi Kuokkanen
+
+Libperflogger is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+Libperflogger is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with libperflogger.  If not, see <https://www.gnu.org/licenses/>.
+*/
+
 #define _GNU_SOURCE
 
 #include "libperflogger.h"
@@ -40,7 +59,7 @@ void *get_hooked_vk_function(const char *name) {
 
 PERFLOGGER_EXPORT
 void *vkQueueSubmit(void *queue, void  *submitCount, void *submits, void *fence) {
-	void *(*real_func)(void*, void*, void*, void*) = 
+	void *(*real_func)(void*, void*, void*, void*) =
 		get_real_vk_function(__func__);
 	fps_logger();
 	return real_func(queue, submitCount, submits, fence);
@@ -49,7 +68,7 @@ void *vkQueueSubmit(void *queue, void  *submitCount, void *submits, void *fence)
 PERFLOGGER_EXPORT
 void *vkGetInstanceProcAddr(void *instance, void *pName) {
 	void *(*real_func)(void*, void*) = get_real_vk_function(__func__);
-	
+
 	void *hooked_func = get_hooked_vk_function((const char*) pName);
 	if (hooked_func != NULL) {
 		return hooked_func;
