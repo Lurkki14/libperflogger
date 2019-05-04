@@ -15,7 +15,7 @@ make install installs the libraries in /usr/local/lib/libperflogger, the script 
 ## Usage
 
 ```
-LD_PRELOAD=./libperflogger.so <program>
+LD_PRELOAD="${LD_PRELOAD}:libperflogger.so" <program>
 ```
 Environment variables:
 
